@@ -7,18 +7,24 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 // 2. Seleccionamos el formulario en el HTML
 const formulario = document.getElementById('requestForm');
 
+// 🔒 VARIABLE CANDADO: Esta variable vive en la memoria interna y es instantánea
+let estaEnviando = false;
+
 // 3. Escuchamos el evento de envío
 formulario.addEventListener('submit', async function(event) {
     event.preventDefault(); 
 
-    // 🔍 Localizamos el botón de enviar dentro de tu formulario
-    const botonEnviar = formulario.querySelector('button') || formulario.querySelector('input[type="submit"]');
+    // 🛑 CANDADO INTERNO: Si ya se está enviando algo, frena en seco los clics extra
+    if (estaEnviando) return;
+    
+    // Si el camino está libre, activamos el candado inmediatamente
+    estaEnviando = true;
 
-    // 🛑 PASO NUEVO: Deshabilitamos el botón inmediatamente para frenar el doble clic
+    // Localizamos el botón de enviar para el cambio visual
+    const botonEnviar = formulario.querySelector('button') || formulario.querySelector('input[type="submit"]');
     botonEnviar.disabled = true;
     const textoOriginal = botonEnviar.innerText || botonEnviar.value;
     
-    // Le cambiamos el texto visual para dar feedback al usuario
     if (botonEnviar.tagName === 'BUTTON') {
         botonEnviar.innerText = 'ENVIANDO...';
     } else {
@@ -48,15 +54,15 @@ formulario.addEventListener('submit', async function(event) {
             throw error;
         }
 
-        // Alerta de éxito si todo sale bien
         alert(`¡Petición enviada! Gracias ${nombre}, El Profe Alex la recibirá en su pantalla.`);
-        formulario.reset(); // Limpiamos el formulario
+        formulario.reset(); 
 
     } catch (error) {
         console.error('Error detallado:', error);
         alert('Hubo un problema al enviar tu canción. Inténtalo de nuevo.');
     } finally {
-        // 🔓 PASO NUEVO: Pase lo que pase (éxito o error), restauramos el botón
+        // 🔓 Al terminar todo, liberamos el candado interno y el botón visual
+        estaEnviando = false;
         botonEnviar.disabled = false;
         if (botonEnviar.tagName === 'BUTTON') {
             botonEnviar.innerText = textoOriginal;
