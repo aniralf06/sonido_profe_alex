@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonido El Profe Alex - Peticiones</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- 1. Primero cargamos la librería de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Después tu archivo de lógica (SOLO UNA VEZ) -->
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- El logo detallado como encabezado visual -->
+        <div class="logo-header">
+            <img src="sonido_profealex_logo.png" alt="Logo Sonido El Profe Alex">
+        </div>
+
+        <!-- El formulario de peticiones con el nuevo estilo -->
+        <div class="form-panel">
+            <h2 class="form-title">PIDE TU CANCIÓN</h2>
+            
+            <form id="requestForm">
+                <div class="form-group">
+                    <label for="nombre">SU NOMBRE</label>
+                    <input type="text" id="nombre" name="nombre" placeholder="Ej. Juan Pérez" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cancion">CANCIÓN SOLICITADA</label>
+                    <input type="text" id="cancion" name="cancion" placeholder="Ej. Cumbia Cienaguera" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="autor">INTÉRPRETE/AUTOR</label>
+                    <input type="text" id="autor" name="autor" placeholder="Ej. La Sonora Dinamita" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="mensaje">MENSAJE/SALUDO (OPCIONAL)</label>
+                    <textarea id="mensaje" name="mensaje" rows="4" placeholder="Ej. Un saludo para toda la banda..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">ENVIAR PETICIÓN</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
