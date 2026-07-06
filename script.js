@@ -4,19 +4,15 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Seleccionamos el formulario en el HTML
 const formulario = document.getElementById('requestForm');
 let estaEnviando = false;
 
-// 🔒 1. COMPROBACIÓN: Verificar si el Profe Alex tiene las peticiones abiertas
+// 🔒 1. COMPROBACIÓN INICIAL: Ver el estado al cargar la página
 async function validarAccesoEvento() {
     try {
-        // Llamamos a la función segura del servidor de Supabase
         const { data: eventoActivo, error } = await supabaseClient.rpc('verificar_evento_activo');
-        
         if (error) throw error;
 
-        // Si el evento está pausado (FALSE o vacío), bloqueamos la pantalla de inmediato
         if (eventoActivo === false || eventoActivo === null) {
             formulario.innerHTML = `
                 <div style="text-align: center; padding: 40px 10px;">
@@ -30,24 +26,22 @@ async function validarAccesoEvento() {
             `;
         }
     } catch (error) {
-        // Si la función de Supabase no existe aún o falla la red, lo registramos en consola
         console.error('Error al checar el estado del evento:', error);
     }
 }
 
-// Ejecutamos la validación inmediatamente al cargar la página en el teléfono
+// Ejecutar al cargar la página
 validarAccesoEvento();
 
 
-// 🔒 2. ESCUCHA DE ENVÍO: Captura el clic, frena la recarga y manda los datos
+// 🔒 2. ESCUCHA DE ENVÍO BLINDADA (Verificación de último segundo)
 formulario.addEventListener('submit', async function(event) {
-    event.preventDefault(); // 🛑 AQUÍ SE DETIENE LA RECARGA DE LA PÁGINA
+    event.preventDefault(); // Frenamos la recarga nativa
 
-    // Candado lógico interno contra clics ultra veloces
     if (estaEnviando) return;
     estaEnviando = true;
 
-    // Cambiamos el aspecto visual del botón
+    // Bloqueamos el botón visualmente
     const botonEnviar = formulario.querySelector('button') || formulario.querySelector('input[type="submit"]');
     botonEnviar.disabled = true;
     const textoOriginal = botonEnviar.innerText || botonEnviar.value;
@@ -58,41 +52,48 @@ formulario.addEventListener('submit', async function(event) {
         botonEnviar.value = 'ENVIANDO...';
     }
 
-    // Atrapamos los textos de las casillas
-    const nombre = document.getElementById('nombre').value;
-    const cancion = document.getElementById('cancion').value;
-    const autor = document.getElementById('autor').value;
-    const mensaje = document.getElementById('mensaje').value;
-
     try {
-        // Enviamos la petición directamente a Supabase
-        const { data, error } = await supabaseClient
+        // 🚨 EL CANDADO TRIPLE A: Antes de meter los datos, preguntamos si sigue abierto
+        const { data: sigueActivo, error: errorCheck } = await supabaseClient.rpc('verificar_evento_activo');
+        if (errorCheck) throw errorCheck;
+
+        // Si el DJ cerró el evento mientras el usuario escribía, lo rebotamos aquí
+        if (sigueActivo === false || sigueActivo === null) {
+            alert('¡Ops! El Profe Alex acaba de cerrar las peticiones en este preciso momento. Tu canción no pudo enviarse.');
+            validarAccesoEvento(); // Transforma la pantalla al mensaje de cerrado inmediatamente
+            return; // Cortamos la ejecución aquí, impidiendo el .from().insert()
+        }
+
+        // Si pasó la prueba, procedemos a atrapar los textos y enviarlos
+        const nombre = document.getElementById('nombre').value;
+        const cancion = document.getElementById('cancion').value;
+        const autor = document.getElementById('autor').value;
+        const mensaje = document.getElementById('mensaje').value;
+
+        const { error: errorInsert } = await supabaseClient
             .from('peticiones')
             .insert([
-                { 
-                    nombre: nombre, 
-                    cancion: cancion, 
-                    autor: autor, 
-                    mensaje: mensaje 
-                }
+                { nombre: nombre, cancion: cancion, autor: autor, mensaje: mensaje }
             ]);
 
-        if (error) throw error;
+        if (errorInsert) throw errorInsert;
 
         alert(`¡Petición enviada! Gracias ${nombre}, El Profe Alex la recibirá en su pantalla.`);
         formulario.reset(); 
 
     } catch (error) {
-        console.error('Error al insertar:', error);
-        alert('Hubo un problema al enviar tu canción. Inténtalo de nuevo.');
+        console.error('Error en el proceso:', error);
+        alert('Hubo un problema al procesar tu solicitud. Inténtalo de nuevo.');
     } finally {
-        // Al terminar, liberamos el botón para el siguiente intento
-        estaEnviando = false;
-        botonEnviar.disabled = false;
-        if (botonEnviar.tagName === 'BUTTON') {
-            botonEnviar.innerText = textoOriginal;
-        } else {
-            botonEnviar.value = textoOriginal;
+        // Liberamos el botón solo si la pantalla no se transformó a "Cerrado"
+        if (formulario.querySelector('input, textarea')) {
+            estaEnviando = false;
+            botonEnviar.disabled = false;
+            if (botonEnviar.tagName === 'BUTTON') {
+                botonEnviar.innerText = textoOriginal;
+            } else {
+                botonEnviar.value = textoOriginal;
+            }
         }
     }
 });
